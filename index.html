@@ -8,9 +8,10 @@
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
-            /* 背景を少し温かみのある深い色に */
+            /* 背景色はJSで制御しますが、初期値を設定 */
             background: radial-gradient(circle at center, #2b32b2 0%, #141e30 100%);
-            /* 丸ゴシック体で優しく */
+            /* 背景の切り替わりをふんわりさせる */
+            transition: background 5s ease;
             font-family: 'M PLUS Rounded 1c', sans-serif;
             color: #fff; touch-action: none;
         }
@@ -33,7 +34,7 @@
             backdrop-filter: blur(4px); transition: all 0.3s; box-sizing: border-box; font-family: inherit;
             text-align: center;
         }
-        textarea::placeholder { color: rgba(255,255,255,0.6); }
+        textarea::placeholder { color: rgba(255,255,255,0.7); } /* 背景が明るい時用に見やすく */
         textarea:focus { background: rgba(255, 255, 255, 0.25); height: 80px; }
 
         button {
@@ -42,6 +43,7 @@
             font-family: inherit; font-size: 14px; transition: all 0.3s;
             letter-spacing: 1px;
             border-radius: 12px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2); /* 明るい背景でも文字が見えるように */
         }
         button:hover { background: rgba(255, 255, 255, 0.4); transform: scale(1.05); }
 
@@ -54,15 +56,14 @@
         }
         .start-title { font-size: 32px; font-weight: 300; margin-bottom: 10px; color: #a8c0ff; }
 
-        /* 星の詳細（ポップアップ）のスタイル変更 */
+        /* 星の詳細（ポップアップ） */
         #star-detail {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            /* 背景を暗くし、白い枠線を追加 */
-            background: rgba(20, 30, 48, 0.95);
+            background: rgba(20, 30, 48, 0.95); /* 夜空のような暗い背景 */
             border: 2px solid #fff;
-            color: #fff; /* テキスト色を白に */
+            color: #fff;
             padding: 40px 30px;
-            border-radius: 24px; /* 角丸を少し大きく */
+            border-radius: 24px;
             width: 80%; max-width: 320px; text-align: center;
             display: none; flex-direction: column; align-items: center;
             box-shadow: 0 20px 50px rgba(0,0,0,0.5); z-index: 200;
@@ -71,25 +72,18 @@
         .star-date { font-size: 13px; color: #ccc; margin-bottom: 15px; }
         .star-text { font-size: 20px; line-height: 1.5; white-space: pre-wrap; margin-bottom: 35px; color:#fff; font-weight: 500;}
         
-        /* ボタンのグループとスタイル */
         .btn-group { display: flex; gap: 20px; justify-content: center; width: 100%; }
         .mini-btn {
-            /* 背景を濃いグレーにし、枠線をなくす */
             background: rgba(255, 255, 255, 0.2);
-            color: #fff;
-            padding: 12px 0;
-            width: 100px; /* 幅を固定して揃える */
-            font-size: 16px; cursor: pointer; border:none;
-            border-radius: 12px; font-weight: 700;
-            transition: background 0.3s;
+            color: #fff; padding: 12px 0; width: 100px; font-size: 16px; cursor: pointer; border:none;
+            border-radius: 12px; font-weight: 700; transition: background 0.3s;
         }
         .mini-btn:hover { background: rgba(255, 255, 255, 0.3); }
 
         /* 右下メニュー */
         #controls { position: fixed; bottom: 15px; right: 15px; display: flex; gap: 15px; z-index: 50; }
-        .control-item { color: rgba(255,255,255,0.4); font-size: 20px; cursor: pointer; }
+        .control-item { color: rgba(255,255,255,0.6); font-size: 20px; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 
-        /* ふわふわアニメーション */
         @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
         .floating { animation: float 6s ease-in-out infinite; }
     </style>
@@ -123,7 +117,34 @@
     </div>
 
     <script>
-        /* --- 音響設定 (優しくリバーブ強め) --- */
+        /* --- スカイ・エンジン（時間連動背景） --- */
+        function updateSky() {
+            const now = new Date();
+            const hour = now.getHours();
+            let bgStyle = "";
+
+            if (hour >= 5 && hour < 8) {
+                // 夜明け (Dawn): 群青色から朝焼けのピンクへ
+                bgStyle = "linear-gradient(to bottom, #2c3e50, #fd746c)";
+            } else if (hour >= 8 && hour < 16) {
+                // 日中 (Day): 落ち着いた空色（文字が読めるように少し濃い目）
+                bgStyle = "linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%)";
+            } else if (hour >= 16 && hour < 19) {
+                // 夕暮れ (Sunset): 紫とオレンジのマジックアワー
+                bgStyle = "linear-gradient(to bottom, #667eea, #764ba2)";
+            } else {
+                // 夜 (Night): 深い青と黒 (デフォルト)
+                bgStyle = "radial-gradient(circle at center, #2b32b2 0%, #141e30 100%)";
+            }
+            document.body.style.background = bgStyle;
+        }
+        
+        // 起動時と、1分ごとに空の色をチェック
+        updateSky();
+        setInterval(updateSky, 60000);
+
+
+        /* --- 音響設定 --- */
         let audioCtx, masterGain, delayNode, isMuted = false;
         const scale = [196.00, 220.00, 261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
 
@@ -149,6 +170,7 @@
             const overlay = document.getElementById('start-overlay');
             overlay.style.opacity = 0;
             setTimeout(() => overlay.style.display = 'none', 800);
+            updateSky(); // スタート時にも念の為更新
         }
 
         function playTone(freq) {
@@ -284,8 +306,7 @@
         }
 
         function animate() {
-            ctx.fillStyle = 'rgba(20, 30, 48, 0.2)';
-            ctx.fillRect(0, 0, width, height);
+            ctx.clearRect(0, 0, width, height); // 背景はCSSで描画するのでCanvasは透明にクリアする
 
             bubbles.forEach(b => {
                 b.update();
