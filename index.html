@@ -17,7 +17,7 @@
 
         #canvas-layer { display: block; width: 100vw; height: 100vh; }
 
-        /* 入力エリア：角を丸く、半透明に */
+        /* 入力エリア */
         #input-area {
             position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
             width: 85%; max-width: 400px; display: flex; flex-direction: column; align-items: center;
@@ -27,19 +27,21 @@
         textarea {
             width: 100%; height: 50px; 
             background: rgba(255, 255, 255, 0.15);
-            border: none; border-radius: 25px; /* 丸く */
+            border: none;
+            border-radius: 16px; /* 角丸を少し抑えめに */
             color: #fff; padding: 15px 20px; font-size: 15px; outline: none; resize: none;
             backdrop-filter: blur(4px); transition: all 0.3s; box-sizing: border-box; font-family: inherit;
-            text-align: center; /* 真ん中寄せでポエムっぽく */
+            text-align: center;
         }
         textarea::placeholder { color: rgba(255,255,255,0.6); }
         textarea:focus { background: rgba(255, 255, 255, 0.25); height: 80px; }
 
         button {
             margin-top: 15px; background: rgba(255, 255, 255, 0.2); border: none;
-            color: white; padding: 10px 30px; border-radius: 50px; cursor: pointer;
+            color: white; padding: 10px 30px; cursor: pointer;
             font-family: inherit; font-size: 14px; transition: all 0.3s;
             letter-spacing: 1px;
+            border-radius: 12px; /* ボタンの角丸を真ん丸から少し角ばらせる */
         }
         button:hover { background: rgba(255, 255, 255, 0.4); transform: scale(1.05); }
 
@@ -55,9 +57,10 @@
         /* 星の詳細（ポップアップ） */
         #star-detail {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(255, 255, 255, 0.9); /* 白ベースで見やすく */
-            color: #333; /* 文字は濃い色 */
-            padding: 30px; border-radius: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 30px;
+            border-radius: 16px; /* ポップアップの角丸も少し抑えめに */
             max-width: 80%; text-align: center;
             display: none; flex-direction: column; align-items: center;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 200;
@@ -66,7 +69,8 @@
         .star-text { font-size: 16px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 25px; color:#444; }
         .btn-group { display: flex; gap: 10px; }
         .mini-btn {
-            background: #eee; color: #555; padding: 8px 16px; border-radius: 20px; font-size: 12px; cursor: pointer; border:none;
+            background: #eee; color: #555; padding: 8px 20px; font-size: 12px; cursor: pointer; border:none;
+            border-radius: 8px; /* 小さいボタンも角を少し残す */
         }
 
         /* 右下メニュー */
@@ -167,7 +171,6 @@
         let width, height, bubbles = [], particles = [];
         let selectedBubble = null;
         
-        // 保存データの読み込み（キーを変更してリセット）
         const savedData = JSON.parse(localStorage.getItem('yuragi_bubbles')) || [];
 
         class Bubble {
@@ -177,12 +180,15 @@
                 this.id = id || Date.now();
                 this.x = x || Math.random() * width;
                 this.y = y || Math.random() * height;
-                // ふわふわ漂う動き
-                this.vx = (Math.random() - 0.5) * 0.3;
-                this.vy = (Math.random() - 0.5) * 0.3;
-                this.size = size || Math.min(text.length + 5, 20); // 文字数で少し大きく
-                // 色は淡いパステルカラー
-                const hues = [200, 220, 280, 180]; // 青、紫、水色系
+                
+                // 動きを非常にゆっくりに修正
+                this.vx = (Math.random() - 0.5) * 0.08; 
+                this.vy = (Math.random() - 0.5) * 0.08;
+
+                // サイズを全体的に小さく修正（最小3px, 最大10px程度に）
+                this.size = size || Math.min(text.length / 3 + 3, 10);
+                
+                const hues = [200, 220, 280, 180];
                 this.hue = hues[Math.floor(Math.random() * hues.length)];
                 this.freq = scale[Math.floor(Math.random() * scale.length)];
                 
@@ -193,11 +199,9 @@
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
-                // 画面端で優しくバウンド
                 if(this.x < 0 || this.x > width) this.vx *= -1;
                 if(this.y < 0 || this.y > height) this.vy *= -1;
 
-                // 自動演奏
                 if(Date.now() > this.nextSing) {
                     this.sing();
                     this.nextSing = Date.now() + Math.random() * 20000 + 10000;
@@ -207,19 +211,17 @@
 
             sing() {
                 playTone(this.freq);
-                this.pulse = 1; // 光るフラグ
-                // 波紋追加
+                this.pulse = 1;
                 particles.push(new Ripple(this.x, this.y, this.hue));
             }
 
             draw() {
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size + (this.pulse * 5), 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, this.size + (this.pulse * 3), 0, Math.PI * 2); // パルスも控えめに
                 ctx.fillStyle = `hsla(${this.hue}, 70%, 70%, 0.6)`;
                 ctx.fill();
                 
-                // ぼんやり光彩
-                ctx.shadowBlur = 20;
+                ctx.shadowBlur = 15; // ぼかしも少し小さく
                 ctx.shadowColor = `hsla(${this.hue}, 80%, 80%, 0.8)`;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size * 0.6, 0, Math.PI * 2);
@@ -232,9 +234,9 @@
         class Ripple {
             constructor(x, y, hue) {
                 this.x = x; this.y = y; this.hue = hue;
-                this.r = 10; this.a = 0.5;
+                this.r = 5; this.a = 0.5; // 波紋の開始サイズも小さく
             }
-            update() { this.r += 0.5; this.a -= 0.005; }
+            update() { this.r += 0.3; this.a -= 0.005; } // 広がる速度もゆっくりに
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
@@ -250,7 +252,7 @@
         }
 
         function createBubble() {
-            createStar(); // 互換性のため関数名流用
+            createStar();
         }
 
         function createStar() {
@@ -260,8 +262,10 @@
             
             if(!audioCtx) startApp();
 
-            const b = new Bubble(text, new Date().toLocaleString(), Date.now(), width/2, height/2 + 100);
-            b.vy = -0.5; // 最初は上に登っていく
+            // 生成位置を画面中央付近に
+            const b = new Bubble(text, new Date().toLocaleString(), Date.now(), width/2 + (Math.random()-0.5)*100, height/2 + (Math.random()-0.5)*100);
+            // 生成時は少しだけ上にゆっくり動かす
+            b.vy = -0.2; 
             b.sing();
             bubbles.push(b);
             saveData();
@@ -274,7 +278,6 @@
         }
 
         function animate() {
-            // 残像を少し強めに残して夢幻的に
             ctx.fillStyle = 'rgba(20, 30, 48, 0.2)';
             ctx.fillRect(0, 0, width, height);
 
@@ -296,8 +299,9 @@
             
             let hit = false;
             for(let b of bubbles) {
+                // タップ判定もサイズに合わせて小さく調整
                 const dist = Math.sqrt((mx-b.x)**2 + (my-b.y)**2);
-                if(dist < b.size + 10) {
+                if(dist < b.size + 15) {
                     b.sing();
                     openDetail(b);
                     hit = true;
