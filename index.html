@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Yuragi</title>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;500;700&family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
@@ -13,7 +13,6 @@
             transition: background 5s ease;
             font-family: 'M PLUS Rounded 1c', sans-serif;
             color: #fff; touch-action: none;
-            /* 明るい空でも文字が見えるように影をつける */
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
         }
 
@@ -32,7 +31,9 @@
             border: none;
             border-radius: 16px;
             color: #fff; padding: 15px 20px; font-size: 15px; outline: none; resize: none;
-            backdrop-filter: blur(8px); transition: all 0.3s; box-sizing: border-box; font-family: inherit;
+            backdrop-filter: blur(8px); transition: all 0.3s; box-sizing: border-box;
+            /* 入力エリアのみ宇宙通信風フォントを適用 */
+            font-family: 'DotGothic16', sans-serif;
             text-align: center;
             text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
@@ -72,6 +73,8 @@
             backdrop-filter: blur(10px);
         }
         .star-date { font-size: 13px; color: #ccc; margin-bottom: 15px; }
+        /* 詳細画面のテキストも宇宙通信風にする場合はここを変更 */
+        /* .star-text { font-size: 20px; line-height: 1.5; white-space: pre-wrap; margin-bottom: 35px; color:#fff; font-weight: 500; font-family: 'DotGothic16', sans-serif; } */
         .star-text { font-size: 20px; line-height: 1.5; white-space: pre-wrap; margin-bottom: 35px; color:#fff; font-weight: 500;}
         
         .btn-group { display: flex; gap: 20px; justify-content: center; width: 100%; }
@@ -100,7 +103,7 @@
     </div>
 
     <div id="input-area">
-        <textarea id="thought-input" placeholder="今の気持ちを浮かべる..."></textarea>
+        <textarea id="thought-input" placeholder="イマノキモチ...ウカベル..."></textarea>
         <button onclick="createStar()">そっと放つ</button>
     </div>
 
@@ -126,29 +129,23 @@
             let bgStyle = "";
 
             if (hour >= 5 && hour < 8) {
-                // 夜明け (Dawn): 紺色 -> ぼんやり青 -> 朱色 (3段階グラデでじわじわ感を演出)
                 bgStyle = "linear-gradient(to bottom, #141e30 0%, #2a5298 50%, #e74c3c 100%)";
             } else if (hour >= 8 && hour < 16) {
-                // 日中 (Day): 白っぽさのある淡い水色
                 bgStyle = "linear-gradient(to bottom, #89c4d9 0%, #dbeef2 100%)"; 
             } else if (hour >= 16 && hour < 19) {
-                // 夕暮れ (Sunset): オレンジから赤へのノスタルジックなグラデーション
                 bgStyle = "linear-gradient(to bottom, #ff512f 0%, #f09819 100%)";
             } else {
-                // 夜 (Night): 深い青と黒
                 bgStyle = "radial-gradient(circle at center, #2b32b2 0%, #141e30 100%)";
             }
             document.body.style.background = bgStyle;
         }
         
-        // 起動時と、1分ごとに空の色をチェック
         updateSky();
         setInterval(updateSky, 60000);
 
 
         /* --- 音響設定 --- */
         let audioCtx, masterGain, delayNode, isMuted = false;
-        // ヨナ抜き音階（和風で落ち着く音）
         const scale = [196.00, 220.00, 261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
 
         function startApp() {
@@ -158,7 +155,6 @@
                 masterGain = audioCtx.createGain();
                 masterGain.gain.value = 0.4;
                 
-                // リバーブ設定
                 delayNode = audioCtx.createDelay();
                 delayNode.delayTime.value = 0.7;
                 const feedback = audioCtx.createGain();
@@ -174,7 +170,7 @@
             const overlay = document.getElementById('start-overlay');
             overlay.style.opacity = 0;
             setTimeout(() => overlay.style.display = 'none', 800);
-            updateSky(); // 念の為更新
+            updateSky(); 
         }
 
         function playTone(freq) {
@@ -207,7 +203,25 @@
         let width, height, bubbles = [], particles = [];
         let selectedBubble = null;
         
-        const savedData = JSON.parse(localStorage.getItem('yuragi_bubbles')) || [];
+        // 24時間 (ミリ秒)
+        const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+        function initBubbles() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            
+            let savedData = JSON.parse(localStorage.getItem('yuragi_bubbles')) || [];
+            
+            const now = Date.now();
+            const initialCount = savedData.length;
+            savedData = savedData.filter(d => (now - d.id) < ONE_DAY_MS);
+            
+            if(savedData.length !== initialCount) {
+                localStorage.setItem('yuragi_bubbles', JSON.stringify(savedData));
+            }
+
+            bubbles = savedData.map(d => new Bubble(d.text, d.date, d.id, d.x, d.y, d.size));
+        }
 
         class Bubble {
             constructor(text, date, id, x, y, size) {
@@ -217,16 +231,20 @@
                 this.x = x || Math.random() * width;
                 this.y = y || Math.random() * height;
                 
-                // ゆっくり漂う動き
                 this.vx = (Math.random() - 0.5) * 0.08; 
                 this.vy = (Math.random() - 0.5) * 0.08;
-
-                // サイズは小さく
                 this.size = size || Math.min(text.length / 3 + 3, 10);
                 
                 const hues = [200, 220, 280, 180];
                 this.hue = hues[Math.floor(Math.random() * hues.length)];
-                this.freq = scale[Math.floor(Math.random() * scale.length)];
+                
+                // 音色決定ロジック
+                let hash = 0;
+                for (let i = 0; i < text.length; i++) {
+                    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const index = Math.abs(hash) % scale.length;
+                this.freq = scale[index];
                 
                 this.nextSing = Date.now() + Math.random() * 10000;
                 this.pulse = 0;
@@ -238,7 +256,6 @@
                 if(this.x < 0 || this.x > width) this.vx *= -1;
                 if(this.y < 0 || this.y > height) this.vy *= -1;
 
-                // 自動演奏
                 if(Date.now() > this.nextSing) {
                     this.sing();
                     this.nextSing = Date.now() + Math.random() * 20000 + 10000;
@@ -280,12 +297,6 @@
                 ctx.strokeStyle = `hsla(${this.hue}, 80%, 80%, ${this.a})`;
                 ctx.stroke();
             }
-        }
-
-        function initBubbles() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-            bubbles = savedData.map(d => new Bubble(d.text, d.date, d.id, d.x, d.y, d.size));
         }
 
         function createStar() {
