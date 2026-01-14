@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yuragi</title>
+    <title>コトバナゲ</title>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;500;700&family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0; padding: 0; overflow: hidden;
-            /* 背景色はJSで制御 */
+            /* 背景色はJSで制御（スカイ・エンジン） */
             background: radial-gradient(circle at center, #2b32b2 0%, #141e30 100%);
             transition: background 5s ease;
             font-family: 'M PLUS Rounded 1c', sans-serif;
@@ -32,7 +32,7 @@
             border-radius: 16px;
             color: #fff; padding: 15px 20px; font-size: 15px; outline: none; resize: none;
             backdrop-filter: blur(8px); transition: all 0.3s; box-sizing: border-box;
-            /* 入力エリアのみ宇宙通信風フォントを適用 */
+            /* 入力エリアはドット文字（カタコト風） */
             font-family: 'DotGothic16', sans-serif;
             text-align: center;
             text-shadow: 0 1px 2px rgba(0,0,0,0.5);
@@ -43,7 +43,9 @@
         button {
             margin-top: 15px; background: rgba(255, 255, 255, 0.25); border: none;
             color: white; padding: 10px 30px; cursor: pointer;
-            font-family: inherit; font-size: 14px; transition: all 0.3s;
+            /* ボタンもドット文字 */
+            font-family: 'DotGothic16', sans-serif;
+            font-size: 14px; transition: all 0.3s;
             letter-spacing: 1px;
             border-radius: 12px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
@@ -53,11 +55,21 @@
         /* スタート画面 */
         #start-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(20, 30, 48, 0.9); z-index: 300;
+            /* 背景を半透明にして、bodyの空色を透けさせる */
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(15px); /* すりガラス効果 */
+            z-index: 300;
             display: flex; justify-content: center; align-items: center; flex-direction: column;
             transition: opacity 0.8s;
         }
-        .start-title { font-size: 32px; font-weight: 300; margin-bottom: 10px; color: #a8c0ff; }
+        /* タイトルも少しレトロ感のあるドット文字にしてみます */
+        .start-title { 
+            font-family: 'DotGothic16', sans-serif;
+            font-size: 42px; 
+            margin-bottom: 10px; 
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
 
         /* 星の詳細（ポップアップ） */
         #star-detail {
@@ -73,8 +85,6 @@
             backdrop-filter: blur(10px);
         }
         .star-date { font-size: 13px; color: #ccc; margin-bottom: 15px; }
-        /* 詳細画面のテキストも宇宙通信風にする場合はここを変更 */
-        /* .star-text { font-size: 20px; line-height: 1.5; white-space: pre-wrap; margin-bottom: 35px; color:#fff; font-weight: 500; font-family: 'DotGothic16', sans-serif; } */
         .star-text { font-size: 20px; line-height: 1.5; white-space: pre-wrap; margin-bottom: 35px; color:#fff; font-weight: 500;}
         
         .btn-group { display: flex; gap: 20px; justify-content: center; width: 100%; }
@@ -82,6 +92,7 @@
             background: rgba(255, 255, 255, 0.2);
             color: #fff; padding: 12px 0; width: 100px; font-size: 16px; cursor: pointer; border:none;
             border-radius: 12px; font-weight: 700; transition: background 0.3s;
+            font-family: 'M PLUS Rounded 1c', sans-serif; /* 操作系は読みやすく */
         }
         .mini-btn:hover { background: rgba(255, 255, 255, 0.3); }
 
@@ -98,13 +109,13 @@
     <canvas id="canvas-layer"></canvas>
 
     <div id="start-overlay" onclick="startApp()">
-        <div class="start-title floating">Yuragi</div>
-        <div style="font-size:13px; color:#a8c0ff; opacity:0.7;">タップしてはじめる（音が出ます）</div>
+        <div class="start-title floating">コトバナゲ</div>
+        <div style="font-size:14px; color:#ddd; font-family: 'DotGothic16', sans-serif;">タップ...シテ...ハジメル...</div>
     </div>
 
     <div id="input-area">
         <textarea id="thought-input" placeholder="イマノキモチ...ウカベル..."></textarea>
-        <button onclick="createStar()">そっと放つ</button>
+        <button onclick="createStar()">ソット...ハナツ...</button>
     </div>
 
     <div id="star-detail">
@@ -129,17 +140,22 @@
             let bgStyle = "";
 
             if (hour >= 5 && hour < 8) {
+                // 夜明け (Dawn): 紺色 -> ぼんやり青 -> 朱色
                 bgStyle = "linear-gradient(to bottom, #141e30 0%, #2a5298 50%, #e74c3c 100%)";
             } else if (hour >= 8 && hour < 16) {
+                // 日中 (Day): 白っぽさのある淡い水色
                 bgStyle = "linear-gradient(to bottom, #89c4d9 0%, #dbeef2 100%)"; 
             } else if (hour >= 16 && hour < 19) {
+                // 夕暮れ (Sunset): オレンジから赤
                 bgStyle = "linear-gradient(to bottom, #ff512f 0%, #f09819 100%)";
             } else {
+                // 夜 (Night): 深い青と黒
                 bgStyle = "radial-gradient(circle at center, #2b32b2 0%, #141e30 100%)";
             }
             document.body.style.background = bgStyle;
         }
         
+        // 起動時に空の色を適用（スタート画面にも透けて見える）
         updateSky();
         setInterval(updateSky, 60000);
 
@@ -170,7 +186,7 @@
             const overlay = document.getElementById('start-overlay');
             overlay.style.opacity = 0;
             setTimeout(() => overlay.style.display = 'none', 800);
-            updateSky(); 
+            updateSky(); // 念の為
         }
 
         function playTone(freq) {
@@ -238,7 +254,7 @@
                 const hues = [200, 220, 280, 180];
                 this.hue = hues[Math.floor(Math.random() * hues.length)];
                 
-                // 音色決定ロジック
+                // 言葉から音色生成
                 let hash = 0;
                 for (let i = 0; i < text.length; i++) {
                     hash = text.charCodeAt(i) + ((hash << 5) - hash);
